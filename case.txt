@@ -1,0 +1,933 @@
+
+
+case "1gb-v2": case "2gb-v2": case "3gb-v2": case "4gb-v2": case "5gb-v2": case "6gb-v2": case "7gb-v2": case "8gb-v2": case "9gb-v2": case "10gb-v2": case "unlimited-v2": case "unli-v2": {
+if (!isCreator) return Reply(mess.owner)
+if (!text) return m.reply(example("username"))
+global.panel = text
+var ram
+var disknya
+var cpu
+if (command == "1gb-v2") {
+ram = "1000"
+disknya = "1000"
+cpu = "40"
+} else if (command == "2gb-v2") {
+ram = "2000"
+disknya = "1000"
+cpu = "60"
+} else if (command == "3gb-v2") {
+ram = "3000"
+disknya = "2000"
+cpu = "80"
+} else if (command == "4gb-v2") {
+ram = "4000"
+disknya = "2000"
+cpu = "100"
+} else if (command == "5gb-v2") {
+ram = "5000"
+disknya = "3000"
+cpu = "120"
+} else if (command == "6gb-v2") {
+ram = "6000"
+disknya = "3000"
+cpu = "140"
+} else if (command == "7gb-v2") {
+ram = "7000"
+disknya = "4000"
+cpu = "160"
+} else if (command == "8gb-v2") {
+ram = "8000"
+disknya = "4000"
+cpu = "180"
+} else if (command == "9gb-v2") {
+ram = "9000"
+disknya = "5000"
+cpu = "200"
+} else if (command == "10gb-v2") {
+ram = "10000"
+disknya = "5000"
+cpu = "220"
+} else {
+ram = "0"
+disknya = "0"
+cpu = "0"
+}
+let username = global.panel.toLowerCase()
+let email = username+"@gmail.com"
+let name = capital(username) + " Server"
+let password = username+crypto.randomBytes(2).toString('hex')
+let f = await fetch(domainV2 + "/api/application/users", {
+"method": "POST",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+},
+"body": JSON.stringify({
+"email": email,
+"username": username.toLowerCase(),
+"first_name": name,
+"last_name": "Server",
+"language": "en",
+"password": password.toString()
+})
+})
+let data = await f.json();
+if (data.errors) return m.reply(JSON.stringify(data.errors[0], null, 2))
+let user = data.attributes
+let desc = tanggal(Date.now())
+let usr_id = user.id
+let f1 = await fetch(domainV2 + `/api/application/nests/${nestidV2}/eggs/` + eggV2, {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let data2 = await f1.json();
+let startup_cmd = data2.attributes.startup
+let f2 = await fetch(domainV2 + "/api/application/servers", {
+"method": "POST",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2,
+},
+"body": JSON.stringify({
+"name": name,
+"description": desc,
+"user": usr_id,
+"egg": parseInt(eggV2),
+"docker_image": "ghcr.io/parkervcp/yolks:nodejs_18",
+"startup": startup_cmd,
+"environment": {
+"INST": "npm",
+"USER_UPLOAD": "0",
+"AUTO_UPDATE": "0",
+"CMD_RUN": "npm start"
+},
+"limits": {
+"memory": ram,
+"swap": 0,
+"disk": disknya,
+"io": 500,
+"cpu": cpu
+},
+"feature_limits": {
+"databases": 5,
+"backups": 5,
+"allocations": 5
+},
+deploy: {
+locations: [parseInt(locV2)],
+dedicated_ip: false,
+port_range: [],
+},
+})
+})
+let result = await f2.json()
+if (result.errors) return m.reply(JSON.stringify(result.errors[0], null, 2))
+let server = result.attributes
+var orang
+if (m.isGroup) {
+orang = m.sender
+await m.reply("*Berhasil membuat panel ✅*\nData akun sudah dikirim ke privat chat")
+} else {
+orang = m.chat
+}
+var teks = `*Data Akun Panel Kamu 📦*
+
+*📡 ID Server (${server.id})* 
+*👤 Username :* ${user.username}
+*🔐 Password :* ${password}
+
+*🌐 Spesifikasi Server*
+* Ram : *${ram == "0" ? "Unlimited" : ram.split("").length > 4 ? ram.split("").slice(0,2).join("") + "GB" : ram.charAt(0) + "GB"}*
+* Disk : *${disknya == "0" ? "Unlimited" : disknya.split("").length > 4 ? disknya.split("").slice(0,2).join("") + "GB" : disknya.charAt(0) + "GB"}*
+* CPU : *${cpu == "0" ? "Unlimited" : cpu+"%"}*
+* ${global.domainV2}
+
+*Syarat & Ketentuan :*
+* Expired panel 1 bulan
+* Simpan data ini sebaik mungkin
+* Garansi pembelian 15 hari (1x replace)
+* Claim garansi wajib membawa bukti chat pembelian
+`
+await fs.writeFileSync("akunpanel.txt", teks)
+await conn.sendMessage(orang, {document: fs.readFileSync("./akunpanel.txt"), fileName: "akunpanel.txt", mimetype: "text/plain", caption: teks}, {quoted: m})
+await fs.unlinkSync("./akunpanel.txt")
+delete global.panel
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "listadmin-v2": {
+if (!isCreator) return Reply(mess.owner)
+let cek = await fetch(domainV2 + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+if (users.length < 1 ) return m.reply("Tidak ada admin panel")
+var teks = "\n *乂 List admin panel pterodactyl*\n"
+await users.forEach((i) => {
+if (i.attributes.root_admin !== true) return
+teks += `\n* ID : *${i.attributes.id}*
+* Nama : *${i.attributes.first_name}*
+* Created : ${i.attributes.created_at.split("T")[0]}\n`
+})
+await conn.sendMessage(m.chat, {
+  buttons: [
+{ buttonId: `.deladmin-v2`, buttonText: { displayText: 'Hapus Admin Panel' }, type: 1 }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: teks,
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "listpanel-v2": {
+if (!isCreator) return Reply(mess.owner)
+let f = await fetch(domainV2 + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res = await f.json();
+let servers = res.data;
+if (servers.length < 1) return m.reply("Tidak Ada Server Bot")
+let messageText = "\n  *乂 List server panel pterodactyl*\n"
+for (let server of servers) {
+let s = server.attributes
+let f3 = await fetch(domainV2 + "/api/client/servers/" + s.uuid.split`-`[0] + "/resources", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + capikeyV2
+}
+})
+let data = await f3.json();
+let status = data.attributes ? data.attributes.current_state : s.status;
+messageText += `\n* ID : *${s.id}*
+* Nama : *${s.name}*
+* Ram : *${s.limits.memory == 0 ? "Unlimited" : s.limits.memory.toString().length > 4 ? s.limits.memory.toString().split("").slice(0,2).join("") + "GB" : s.limits.memory.toString().length < 4 ? s.limits.memory.toString().charAt(1) + "GB" : s.limits.memory.toString().charAt(0) + "GB"}*
+* CPU : *${s.limits.cpu == 0 ? "Unlimited" : s.limits.cpu.toString() + "%"}*
+* Disk : *${s.limits.disk == 0 ? "Unlimited" : s.limits.disk.length > 3 ? s.limits.disk.toString().charAt(1) + "GB" : s.limits.disk.toString().charAt(0) + "GB"}*
+* Created : ${s.created_at.split("T")[0]}\n`
+}
+
+await conn.sendMessage(m.chat, {
+  buttons: [
+{ buttonId: `.delpanel-v2`, buttonText: { displayText: 'Hapus Server Panel' }, type: 1 }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: messageText,
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "deladmin-v2": {
+if (!isCreator) return Reply(mess.owner)
+if (!text) {
+let cek = await fetch(domainV2 + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+if (users.length < 1 ) return m.reply("Tidak ada admin panel")
+let list = []
+await users.forEach((i) => {
+if (i.attributes.root_admin !== true) return
+list.push({
+title: `${i.attributes.first_name} (ID ${i.attributes.id})`, 
+id: `.deladmin ${i.attributes.id}`
+})
+})
+return conn.sendMessage(m.chat, {
+  buttons: [
+    {
+    buttonId: 'action',
+    buttonText: { displayText: 'ini pesan interactiveMeta' },
+    type: 4,
+    nativeFlowInfo: {
+        name: 'single_select',
+        paramsJson: JSON.stringify({
+          title: 'Pilih Admin Panel',
+          sections: [
+            {
+              title: 'List Admin Panel',
+              rows: [...list]              
+            }
+          ]
+        })
+      }
+      }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: "\nPilih Salah Satu Admin Panel\n",
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+let cek = await fetch(domainV2 + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+let getid = null
+let idadmin = null
+await users.forEach(async (e) => {
+if (e.attributes.id == args[0] && e.attributes.root_admin == true) {
+getid = e.attributes.username
+idadmin = e.attributes.id
+let delusr = await fetch(domainV2 + `/api/application/users/${idadmin}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res = delusr.ok ? {
+errors: null
+} : await delusr.json()
+}
+})
+if (idadmin == null) return m.reply("Akun admin panel tidak ditemukan!")
+await m.reply(`Berhasil menghapus akun admin panel *${capital(getid)}*`)
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "delpanel-v2": {
+if (!isCreator && !isPremium) return Reply(mess.owner)
+if (!text) {
+let list = []
+let f = await fetch(domainV2 + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res = await f.json();
+let servers = res.data;
+if (servers.length < 1) return m.reply("Tidak Ada Server Bot")
+for (let server of servers) {
+let s = server.attributes
+let f3 = await fetch(domainV2 + "/api/client/servers/" + s.uuid.split`-`[0] + "/resources", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + capikeyV2
+}
+})
+let data = await f3.json();
+let status = data.attributes ? data.attributes.current_state : s.status;
+list.push({
+title: `${s.name} (ID ${s.id})`, 
+description: `Ram ${s.limits.memory == 0 ? "Unlimited" : s.limits.memory.toString().length > 4 ? s.limits.memory.toString().split("").slice(0,2).join("") + "GB" : s.limits.memory.toString().length < 4 ? s.limits.memory.toString().charAt(1) + "GB" : s.limits.memory.toString().charAt(0) + "GB"} || Disk ${s.limits.disk == 0 ? "Unlimited" : s.limits.disk.length > 3 ? s.limits.disk.toString().charAt(1) + "GB" : s.limits.disk.toString().charAt(0) + "GB"} || CPU ${s.limits.cpu == 0 ? "Unlimited" : s.limits.cpu.toString() + "%"}`, 
+id: `.delpanel-v2 ${s.id}`
+})
+}
+
+return conn.sendMessage(m.chat, {
+  buttons: [
+    {
+    buttonId: 'action',
+    buttonText: { displayText: 'ini pesan interactiveMeta' },
+    type: 4,
+    nativeFlowInfo: {
+        name: 'single_select',
+        paramsJson: JSON.stringify({
+          title: 'Pilih Server Panel',
+          sections: [
+            {
+              title: 'List Server Panel',
+              rows: [...list]              
+            }
+          ]
+        })
+      }
+      }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: "Pilih Salah Satu Server Panel\n",
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+let f = await fetch(domainV2 + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let result = await f.json()
+let servers = result.data
+let sections
+let nameSrv
+for (let server of servers) {
+let s = server.attributes
+if (Number(text) == s.id) {
+sections = s.name.toLowerCase()
+nameSrv = s.name
+let f = await fetch(domainV2 + `/api/application/servers/${s.id}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2,
+}
+})
+let res = f.ok ? {
+errors: null
+} : await f.json()
+}}
+let cek = await fetch(domainV2 + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+for (let user of users) {
+let u = user.attributes
+if (u.first_name.toLowerCase() == sections) {
+let delusr = await fetch(domainV2 + `/api/application/users/${u.id}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikeyV2
+}
+})
+let res = delusr.ok ? {
+errors: null
+} : await delusr.json()
+}}
+if (sections == undefined) return m.reply("Server panel tidak ditemukan!")
+m.reply(`Berhasil menghapus server panel *${capital(nameSrv)}*`)
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "1gb": case "2gb": case "3gb": case "4gb": case "5gb": case "6gb": case "7gb": case "8gb": case "9gb": case "10gb": case "unlimited": case "unli": {
+if (!isCreator && !isPremium) return Reply(mess.owner)
+if (!text) return m.reply(example("username"))
+global.panel = text
+var ram
+var disknya
+var cpu
+if (command == "1gb") {
+ram = "1000"
+disknya = "1000"
+cpu = "40"
+} else if (command == "2gb") {
+ram = "2000"
+disknya = "1000"
+cpu = "60"
+} else if (command == "3gb") {
+ram = "3000"
+disknya = "2000"
+cpu = "80"
+} else if (command == "4gb") {
+ram = "4000"
+disknya = "2000"
+cpu = "100"
+} else if (command == "5gb") {
+ram = "5000"
+disknya = "3000"
+cpu = "120"
+} else if (command == "6gb") {
+ram = "6000"
+disknya = "3000"
+cpu = "140"
+} else if (command == "7gb") {
+ram = "7000"
+disknya = "4000"
+cpu = "160"
+} else if (command == "8gb") {
+ram = "8000"
+disknya = "4000"
+cpu = "180"
+} else if (command == "9gb") {
+ram = "9000"
+disknya = "5000"
+cpu = "200"
+} else if (command == "10gb") {
+ram = "10000"
+disknya = "5000"
+cpu = "220"
+} else {
+ram = "0"
+disknya = "0"
+cpu = "0"
+}
+let username = global.panel.toLowerCase()
+let email = username+"@gmail.com"
+let name = capital(username) + " Server"
+let password = username+crypto.randomBytes(2).toString('hex')
+let f = await fetch(domain + "/api/application/users", {
+"method": "POST",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+},
+"body": JSON.stringify({
+"email": email,
+"username": username.toLowerCase(),
+"first_name": name,
+"last_name": "Server",
+"language": "en",
+"password": password.toString()
+})
+})
+let data = await f.json();
+if (data.errors) return m.reply(JSON.stringify(data.errors[0], null, 2))
+let user = data.attributes
+let desc = tanggal(Date.now())
+let usr_id = user.id
+let f1 = await fetch(domain + `/api/application/nests/${nestid}/eggs/` + egg, {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let data2 = await f1.json();
+let startup_cmd = data2.attributes.startup
+let f2 = await fetch(domain + "/api/application/servers", {
+"method": "POST",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey,
+},
+"body": JSON.stringify({
+"name": name,
+"description": desc,
+"user": usr_id,
+"egg": parseInt(egg),
+"docker_image": "ghcr.io/parkervcp/yolks:nodejs_18",
+"startup": startup_cmd,
+"environment": {
+"INST": "npm",
+"USER_UPLOAD": "0",
+"AUTO_UPDATE": "0",
+"CMD_RUN": "npm start"
+},
+"limits": {
+"memory": ram,
+"swap": 0,
+"disk": disknya,
+"io": 500,
+"cpu": cpu
+},
+"feature_limits": {
+"databases": 5,
+"backups": 5,
+"allocations": 5
+},
+deploy: {
+locations: [parseInt(loc)],
+dedicated_ip: false,
+port_range: [],
+},
+})
+})
+let result = await f2.json()
+if (result.errors) return m.reply(JSON.stringify(result.errors[0], null, 2))
+let server = result.attributes
+var orang
+if (m.isGroup) {
+orang = m.sender
+await m.reply("*Berhasil membuat panel ✅*\nData akun sudah dikirim ke privat chat")
+} else {
+orang = m.chat
+}
+var teks = `*Data Akun Panel Kamu 📦*
+
+*📡 ID Server (${server.id})* 
+*👤 Username :* ${user.username}
+*🔐 Password :* ${password}
+
+*🌐 Spesifikasi Server*
+* Ram : *${ram == "0" ? "Unlimited" : ram.split("").length > 4 ? ram.split("").slice(0,2).join("") + "GB" : ram.charAt(0) + "GB"}*
+* Disk : *${disknya == "0" ? "Unlimited" : disknya.split("").length > 4 ? disknya.split("").slice(0,2).join("") + "GB" : disknya.charAt(0) + "GB"}*
+* CPU : *${cpu == "0" ? "Unlimited" : cpu+"%"}*
+* ${global.domain}
+
+*Syarat & Ketentuan :*
+* Expired panel 1 bulan
+* Simpan data ini sebaik mungkin
+* Garansi pembelian 15 hari (1x replace)
+* Claim garansi wajib membawa bukti chat pembelian
+`
+await fs.writeFileSync("akunpanel.txt", teks)
+await conn.sendMessage(orang, {document: fs.readFileSync("./akunpanel.txt"), fileName: "akunpanel.txt", mimetype: "text/plain", caption: teks}, {quoted: m})
+await fs.unlinkSync("./akunpanel.txt")
+delete global.panel
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "listadmin": {
+if (!isCreator && !isPremium) return Reply(mess.owner)
+let cek = await fetch(domain + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+if (users.length < 1 ) return m.reply("Tidak ada admin panel")
+var teks = " *乂 List admin panel pterodactyl*\n"
+await users.forEach((i) => {
+if (i.attributes.root_admin !== true) return
+teks += `\n* ID : *${i.attributes.id}*
+* Nama : *${i.attributes.first_name}*
+* Created : ${i.attributes.created_at.split("T")[0]}\n`
+})
+await conn.sendMessage(m.chat, {
+  buttons: [
+{ buttonId: `.deladmin`, buttonText: { displayText: 'Hapus Admin Panel' }, type: 1 }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: teks,
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "listpanel": case "listp": case "listserver": {
+if (!isCreator && !isPremium) return Reply(mess.owner)
+let f = await fetch(domain + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res = await f.json();
+let servers = res.data;
+if (servers.length < 1) return m.reply("Tidak Ada Server Bot")
+let messageText = "\n  *乂 List server panel pterodactyl*\n"
+for (let server of servers) {
+let s = server.attributes
+let f3 = await fetch(domain + "/api/client/servers/" + s.uuid.split`-`[0] + "/resources", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + capikey
+}
+})
+let data = await f3.json();
+let status = data.attributes ? data.attributes.current_state : s.status;
+messageText += `\n* ID : *${s.id}*
+* Nama : *${s.name}*
+* Ram : *${s.limits.memory == 0 ? "Unlimited" : s.limits.memory.toString().length > 4 ? s.limits.memory.toString().split("").slice(0,2).join("") + "GB" : s.limits.memory.toString().length < 4 ? s.limits.memory.toString().charAt(1) + "GB" : s.limits.memory.toString().charAt(0) + "GB"}*
+* CPU : *${s.limits.cpu == 0 ? "Unlimited" : s.limits.cpu.toString() + "%"}*
+* Disk : *${s.limits.disk == 0 ? "Unlimited" : s.limits.disk.length > 3 ? s.limits.disk.toString().charAt(1) + "GB" : s.limits.disk.toString().charAt(0) + "GB"}*
+* Created : ${s.created_at.split("T")[0]}\n`
+}
+
+await conn.sendMessage(m.chat, {
+  buttons: [
+{ buttonId: `.delpanel`, buttonText: { displayText: 'Hapus Server Panel' }, type: 1 }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: messageText,
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "deladmin": {
+if (!isCreator) return Reply(mess.owner)
+if (!text) {
+let cek = await fetch(domain + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+if (users.length < 1 ) return m.reply("Tidak ada admin panel")
+let list = []
+await users.forEach((i) => {
+if (i.attributes.root_admin !== true) return
+list.push({
+title: `${i.attributes.first_name} (ID ${i.attributes.id})`, 
+id: `.deladmin ${i.attributes.id}`
+})
+})
+return conn.sendMessage(m.chat, {
+  buttons: [
+    {
+    buttonId: 'action',
+    buttonText: { displayText: 'ini pesan interactiveMeta' },
+    type: 4,
+    nativeFlowInfo: {
+        name: 'single_select',
+        paramsJson: JSON.stringify({
+          title: 'Pilih Admin Panel',
+          sections: [
+            {
+              title: 'List Admin Panel',
+              rows: [...list]              
+            }
+          ]
+        })
+      }
+      }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: "\nPilih Salah Satu Admin Panel\n",
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+let cek = await fetch(domain + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+let getid = null
+let idadmin = null
+await users.forEach(async (e) => {
+if (e.attributes.id == args[0] && e.attributes.root_admin == true) {
+getid = e.attributes.username
+idadmin = e.attributes.id
+let delusr = await fetch(domain + `/api/application/users/${idadmin}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res = delusr.ok ? {
+errors: null
+} : await delusr.json()
+}
+})
+if (idadmin == null) return m.reply("Akun admin panel tidak ditemukan!")
+await m.reply(`Berhasil menghapus akun admin panel *${capital(getid)}*`)
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+case "delpanel": {
+if (!isCreator && !isPremium) return Reply(mess.owner)
+if (!text) {
+let list = []
+let f = await fetch(domain + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res = await f.json();
+let servers = res.data;
+if (servers.length < 1) return m.reply("Tidak Ada Server Bot")
+for (let server of servers) {
+let s = server.attributes
+let f3 = await fetch(domain + "/api/client/servers/" + s.uuid.split`-`[0] + "/resources", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + capikey
+}
+})
+let data = await f3.json();
+let status = data.attributes ? data.attributes.current_state : s.status;
+list.push({
+title: `${s.name} (ID ${s.id})`, 
+description: `Ram ${s.limits.memory == 0 ? "Unlimited" : s.limits.memory.toString().length > 4 ? s.limits.memory.toString().split("").slice(0,2).join("") + "GB" : s.limits.memory.toString().length < 4 ? s.limits.memory.toString().charAt(1) + "GB" : s.limits.memory.toString().charAt(0) + "GB"} || Disk ${s.limits.disk == 0 ? "Unlimited" : s.limits.disk.length > 3 ? s.limits.disk.toString().charAt(1) + "GB" : s.limits.disk.toString().charAt(0) + "GB"} || CPU ${s.limits.cpu == 0 ? "Unlimited" : s.limits.cpu.toString() + "%"}`, 
+id: `.delpanel ${s.id}`
+})
+}
+
+return conn.sendMessage(m.chat, {
+  buttons: [
+    {
+    buttonId: 'action',
+    buttonText: { displayText: 'ini pesan interactiveMeta' },
+    type: 4,
+    nativeFlowInfo: {
+        name: 'single_select',
+        paramsJson: JSON.stringify({
+          title: 'Pilih Server Panel',
+          sections: [
+            {
+              title: 'List Server Panel',
+              rows: [...list]              
+            }
+          ]
+        })
+      }
+      }
+  ],
+  footer: `© 2025 ${botname}`,
+  headerType: 1,
+  viewOnce: true,
+  text: "Pilih Salah Satu Server Panel\n",
+  contextInfo: {
+   isForwarded: true, 
+   mentionedJid: [m.sender, global.owner+"@s.whatsapp.net"], 
+  },
+}, {quoted: m})
+}
+let f = await fetch(domain + "/api/application/servers?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let result = await f.json()
+let servers = result.data
+let sections
+let nameSrv
+for (let server of servers) {
+let s = server.attributes
+if (Number(text) == s.id) {
+sections = s.name.toLowerCase()
+nameSrv = s.name
+let f = await fetch(domain + `/api/application/servers/${s.id}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey,
+}
+})
+let res = f.ok ? {
+errors: null
+} : await f.json()
+}}
+let cek = await fetch(domain + "/api/application/users?page=1", {
+"method": "GET",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res2 = await cek.json();
+let users = res2.data;
+for (let user of users) {
+let u = user.attributes
+if (u.first_name.toLowerCase() == sections) {
+let delusr = await fetch(domain + `/api/application/users/${u.id}`, {
+"method": "DELETE",
+"headers": {
+"Accept": "application/json",
+"Content-Type": "application/json",
+"Authorization": "Bearer " + apikey
+}
+})
+let res = delusr.ok ? {
+errors: null
+} : await delusr.json()
+}}
+if (sections == undefined) return m.reply("Server panel tidak ditemukan!")
+m.reply(`Berhasil menghapus server panel *${capital(nameSrv)}*`)
+}
+break
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
